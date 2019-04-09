@@ -10,23 +10,37 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ListView;
 import android.widget.SeekBar;
-
-import java.util.Timer;
-import java.util.TimerTask;
+import android.media.MediaMetadataRetriever;
+import android.net.Uri;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.TextView;
+import android.widget.Toast;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 public class MainActivity extends AppCompatActivity {
 
     private Button btnReproducir;
     private Button btnAnterior;
     private Button btnSiguiente;
+    private TextView lblCancionActual;
     private SeekBar seekbarCancion;
     private SeekBar seekbarVolumen;
     private MediaPlayer mediaPlayer;
     private AudioManager audioManager;
-    private boolean isActivePlaying = false;
     private Runnable runnable;
     private Handler handler;
+
+    private ArrayList<String> listaArchivos = new ArrayList();
+    private ArrayList<ArrayList<String>> listaCanciones = new ArrayList<ArrayList<String>>();
+    private ArrayList<String> listaDatosCancionesView = new ArrayList();
+    private ArrayList<String> listaDatosCancionesLabel = new ArrayList();
+    private ArrayList<String> idsCanciones = new ArrayList<>();
+    private int indiceCancionActual = 0;
 
     public void pauseClick(View view){
         mediaPlayer.pause();
@@ -35,10 +49,10 @@ public class MainActivity extends AppCompatActivity {
     public void playClick(View view){
         if(mediaPlayer.isPlaying()){
             mediaPlayer.pause();
-            btnReproducir.setText("Reproducir");
+            btnReproducir.setBackgroundResource(R.drawable.btnplay);
         }else{
             mediaPlayer.start();
-            btnReproducir.setText("Pausar");
+            btnReproducir.setBackgroundResource(R.drawable.btnpause);
             modificarSeekbarCanción();
         }
     }
@@ -50,20 +64,28 @@ public class MainActivity extends AppCompatActivity {
         btnReproducir = (Button) findViewById(R.id.btnPlay);
         btnSiguiente = (Button) findViewById(R.id.btnFollowing);
         btnAnterior = (Button) findViewById(R.id.btnPrevious);
+        lblCancionActual = (TextView) findViewById(R.id.lblDatos);
         handler = new Handler();
         seekbarCancion = findViewById(R.id.seekbarDuracion);
-        //Aqui
-        mediaPlayer = MediaPlayer.create(this, R.raw.sail_awolnation);
-        iniciarCanción();
-
-        // Manejo de volumen
-
-        //audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        obtenerNombresArchivos();
+        obtenerDetallesCanciones();
+        poblarListaCanciones();
+        reproducirCancion();
         controlarVolumen();
 
 
     }
-    public void iniciarCanción(){
+    public void reproducirCancion(){
+        int cancion = Integer.parseInt(idsCanciones.get(indiceCancionActual));
+        mediaPlayer = MediaPlayer.create(this,cancion);
+        lblCancionActual.setText(listaDatosCancionesLabel.get(indiceCancionActual));
+        try{
+            mediaPlayer.prepare();
+        }catch (IllegalStateException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
             @Override
             public void onPrepared(MediaPlayer mediaPlayer) {
@@ -88,6 +110,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
 
+            }
+        });
+
+        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mediaPlayer) {
+                cancionSiguiente();
             }
         });
     }
@@ -132,5 +161,115 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+    }
+    public static int obtenerIDs(String song) throws IllegalArgumentException
+    {
+        HashMap resmap = new HashMap();
+        Field[] fields = R.raw.class.getFields();
+        try
+        {
+            for(int i = 0; i < fields.length; i++)
+            {
+                if(song != null)
+                    if(fields[i].getName().startsWith(song))
+                        resmap.put(fields[i].getName(), fields[i].getInt(null));
+                    else
+                        resmap.put(fields[i].getName(), fields[i].getInt(null));
+            }
+        } catch (Exception e)
+        {
+            throw new IllegalArgumentException();
+        }
+        Integer one = (Integer) resmap.get(song);
+        int songid = one.intValue();
+        return songid;
+    }
+    public void obtenerDetallesCanciones(){
+        int cantidadCanciones = listaArchivos.size()-1;
+
+        for(int i=0;i<=cantidadCanciones;i++){
+            //Se debe poner el arraylist aquí porque sino borra los datos porque apunta a la misma referencia
+            ArrayList<String> datoCancion= new ArrayList<String>();
+            String nombreArchivo = listaArchivos.get(i);
+            Log.i("ENTRE CON",nombreArchivo);
+            int idCancion = obtenerIDs(nombreArchivo);
+            Uri mediaPath = Uri.parse("android.resource://" + getPackageName() + "/" + idCancion);
+            MediaMetadataRetriever mmr = new MediaMetadataRetriever();
+            mmr.setDataSource(this, mediaPath);
+            String tituloCancion = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
+            String tituloArtista = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
+
+            idsCanciones.add(String.valueOf(idCancion));
+
+            datoCancion.add(tituloCancion);
+
+            datoCancion.add(tituloArtista);
+            listaDatosCancionesView.add(tituloCancion+"\n"+tituloArtista);
+            listaDatosCancionesLabel.add(tituloArtista+" - "+tituloCancion);
+            listaCanciones.add(datoCancion);
+
+            Log.i("LISTA",listaCanciones.toString());
+            Log.i("LISTA",listaDatosCancionesView.toString());
+        }
+
+    }
+    public void obtenerNombresArchivos(){
+        Field[] campos = R.raw.class.getFields();
+
+        for(int count=0; count < campos.length; count++){
+            String nombre = campos[count].getName();
+            listaArchivos.add(nombre);
+        }
+        Log.i("ARCHIVOS",listaArchivos.toString());
+    }
+    public void poblarListaCanciones(){
+        ListView listView = findViewById(R.id.lvListaCanciones);
+
+        ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(this,android.R.layout.simple_list_item_1, listaDatosCancionesView);
+
+        listView.setAdapter(arrayAdapter);
+
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                cancionPresionada(i);
+                Toast.makeText(getApplicationContext(), listaArchivos.get(i), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+    public void btnSiguienteClicked(View view){
+        cancionSiguiente();
+    }
+    public void btnAnteriorClicked(View view){
+        cancionAnterior();
+    }
+    public void cancionSiguiente(){
+        if(indiceCancionActual==idsCanciones.size()-1){
+            indiceCancionActual=0;
+            mediaPlayer.stop();
+            reproducirCancion();
+        }
+        else{
+            indiceCancionActual=indiceCancionActual+1;
+            mediaPlayer.stop();
+            reproducirCancion();
+        }
+    }
+    public void cancionAnterior(){
+        if(indiceCancionActual==0){
+            indiceCancionActual=idsCanciones.size()-1;
+            mediaPlayer.stop();
+            reproducirCancion();
+        }
+        else{
+            indiceCancionActual=indiceCancionActual-1;
+            mediaPlayer.stop();
+            reproducirCancion();
+        }
+    }
+    public void cancionPresionada(int indice){
+        indiceCancionActual=indice;
+        mediaPlayer.stop();
+        reproducirCancion();
     }
 }
