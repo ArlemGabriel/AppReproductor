@@ -84,7 +84,7 @@ public class MainActivity extends AppCompatActivity {
     public void reproducirCancion(){
         int cancion = Integer.parseInt(idsCanciones.get(indiceCancionActual));
         mediaPlayer = MediaPlayer.create(this,cancion);
-        animarTexto();
+        //animarTexto();
         //lblCancionActual.setText(listaDatosCancionesLabel.get(indiceCancionActual));
         try{
             mediaPlayer.prepare();
@@ -259,14 +259,19 @@ public class MainActivity extends AppCompatActivity {
                 indiceCancionActual=0;
                 mediaPlayer.stop();
                 btnReproducir.setBackgroundResource(R.drawable.btnpause);
+                animarTexto();
                 reproducirCancion();
             }
             else{
                 indiceCancionActual=indiceCancionActual+1;
                 mediaPlayer.stop();
                 btnReproducir.setBackgroundResource(R.drawable.btnpause);
+                animarTexto();
                 reproducirCancion();
             }
+        }else{
+            indiceCancionActual=indiceCancionActual+1;
+            animarTexto();
         }
     }
     public void cancionAnterior(){
@@ -278,14 +283,19 @@ public class MainActivity extends AppCompatActivity {
                 indiceCancionActual=idsCanciones.size()-1;
                 mediaPlayer.stop();
                 btnReproducir.setBackgroundResource(R.drawable.btnpause);
+                animarTexto();
                 reproducirCancion();
             }
             else{
                 indiceCancionActual=indiceCancionActual-1;
                 mediaPlayer.stop();
                 btnReproducir.setBackgroundResource(R.drawable.btnpause);
+                animarTexto();
                 reproducirCancion();
             }
+        }else{
+            indiceCancionActual=indiceCancionActual-1;
+            animarTexto();
         }
     }
     public void cancionPresionada(int indice){
@@ -293,10 +303,12 @@ public class MainActivity extends AppCompatActivity {
             indiceCancionActual=indice;
             mediaPlayer.stop();
             btnReproducir.setBackgroundResource(R.drawable.btnpause);
+            animarTexto();
             reproducirCancion();
         }else{
             indiceCancionActual=indice;
             btnReproducir.setBackgroundResource(R.drawable.btnpause);
+            animarTexto();
             reproducirCancion();
         }
     }
