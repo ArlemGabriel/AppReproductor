@@ -9,6 +9,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.animation.AnimationUtils;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.SeekBar;
@@ -42,19 +43,25 @@ public class MainActivity extends AppCompatActivity {
     private ArrayList<String> idsCanciones = new ArrayList<>();
     private int indiceCancionActual = 0;
 
-    public void pauseClick(View view){
-        mediaPlayer.pause();
-    }
 
     public void playClick(View view){
-        if(mediaPlayer.isPlaying()){
-            mediaPlayer.pause();
-            btnReproducir.setBackgroundResource(R.drawable.btnplay);
-        }else{
-            mediaPlayer.start();
-            btnReproducir.setBackgroundResource(R.drawable.btnpause);
-            modificarSeekbarCanción();
+        if(mediaPlayer!=null){
+            if(mediaPlayer.isPlaying()){
+                mediaPlayer.pause();
+                btnReproducir.setBackgroundResource(R.drawable.btnplay);
+            }else{
+                mediaPlayer.start();
+                btnReproducir.setBackgroundResource(R.drawable.btnpause);
+                modificarSeekbarCanción();
+            }
         }
+        if(mediaPlayer==null){
+            btnReproducir.setBackgroundResource(R.drawable.btnpause);
+            reproducirCancion();
+        }
+    }
+    public void pause(){
+        mediaPlayer.pause();
     }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,15 +77,15 @@ public class MainActivity extends AppCompatActivity {
         obtenerNombresArchivos();
         obtenerDetallesCanciones();
         poblarListaCanciones();
-        reproducirCancion();
+        animarTexto();
+        //lblCancionActual.setText(listaDatosCancionesLabel.get(indiceCancionActual));
         controlarVolumen();
-
-
     }
     public void reproducirCancion(){
         int cancion = Integer.parseInt(idsCanciones.get(indiceCancionActual));
         mediaPlayer = MediaPlayer.create(this,cancion);
-        lblCancionActual.setText(listaDatosCancionesLabel.get(indiceCancionActual));
+        animarTexto();
+        //lblCancionActual.setText(listaDatosCancionesLabel.get(indiceCancionActual));
         try{
             mediaPlayer.prepare();
         }catch (IllegalStateException e) {
@@ -233,7 +240,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 cancionPresionada(i);
-                Toast.makeText(getApplicationContext(), listaArchivos.get(i), Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -244,32 +250,58 @@ public class MainActivity extends AppCompatActivity {
         cancionAnterior();
     }
     public void cancionSiguiente(){
-        if(indiceCancionActual==idsCanciones.size()-1){
-            indiceCancionActual=0;
-            mediaPlayer.stop();
-            reproducirCancion();
-        }
-        else{
-            indiceCancionActual=indiceCancionActual+1;
-            mediaPlayer.stop();
-            reproducirCancion();
+        if(mediaPlayer!=null){
+
+            if(mediaPlayer.isPlaying()==false){
+                btnReproducir.setBackgroundResource(R.drawable.btnplay);
+            }
+            if(indiceCancionActual==idsCanciones.size()-1){
+                indiceCancionActual=0;
+                mediaPlayer.stop();
+                btnReproducir.setBackgroundResource(R.drawable.btnpause);
+                reproducirCancion();
+            }
+            else{
+                indiceCancionActual=indiceCancionActual+1;
+                mediaPlayer.stop();
+                btnReproducir.setBackgroundResource(R.drawable.btnpause);
+                reproducirCancion();
+            }
         }
     }
     public void cancionAnterior(){
-        if(indiceCancionActual==0){
-            indiceCancionActual=idsCanciones.size()-1;
-            mediaPlayer.stop();
-            reproducirCancion();
-        }
-        else{
-            indiceCancionActual=indiceCancionActual-1;
-            mediaPlayer.stop();
-            reproducirCancion();
+        if(mediaPlayer!=null){
+            if(mediaPlayer.isPlaying()==false){
+                btnReproducir.setBackgroundResource(R.drawable.btnplay);
+            }
+            if(indiceCancionActual==0){
+                indiceCancionActual=idsCanciones.size()-1;
+                mediaPlayer.stop();
+                btnReproducir.setBackgroundResource(R.drawable.btnpause);
+                reproducirCancion();
+            }
+            else{
+                indiceCancionActual=indiceCancionActual-1;
+                mediaPlayer.stop();
+                btnReproducir.setBackgroundResource(R.drawable.btnpause);
+                reproducirCancion();
+            }
         }
     }
     public void cancionPresionada(int indice){
-        indiceCancionActual=indice;
-        mediaPlayer.stop();
-        reproducirCancion();
+        if(mediaPlayer!=null){
+            indiceCancionActual=indice;
+            mediaPlayer.stop();
+            btnReproducir.setBackgroundResource(R.drawable.btnpause);
+            reproducirCancion();
+        }else{
+            indiceCancionActual=indice;
+            btnReproducir.setBackgroundResource(R.drawable.btnpause);
+            reproducirCancion();
+        }
+    }
+    public void animarTexto(){
+        lblCancionActual.setText(listaDatosCancionesLabel.get(indiceCancionActual));
+        lblCancionActual.startAnimation(AnimationUtils.loadAnimation(MainActivity.this,android.R.anim.slide_in_left));
     }
 }
